@@ -13,9 +13,9 @@ The system can detect the following elements:
 - Red Traffic Lights
 - Green Traffic Lights
 
-![Image](https://github.com/user-attachments/assets/514cd3d6-e572-4589-84b1-e60b7c935cca)
-![Image](https://github.com/user-attachments/assets/2050e56c-4f14-4351-a499-91afa051e1c2)
-![Image](https://github.com/user-attachments/assets/ecb982bb-d637-4511-ba72-2b4383102345)
+![Image](https://github.com/user-attachments/assets/13c9738c-5d1a-4159-92f6-b94ae3b71e85)
+![Image](https://github.com/user-attachments/assets/a00a72fc-1130-4323-9d68-8b0c0578cccc)
+![Image](https://github.com/user-attachments/assets/8bb73f3b-f704-48e3-af3e-5f1ee2fd3269)
 
 ## Technical Details
 - Built with Flask web framework
