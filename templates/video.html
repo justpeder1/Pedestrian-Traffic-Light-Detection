@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yaya ve Trafik Işığı Algılama - Video</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+        }
+        .sidebar-link {
+            display: block;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        .sidebar-link:hover {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .sidebar-link.active {
+            background-color: #e9ecef;
+            color: #333;
+            font-weight: 500;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+        }
+        .upload-icon {
+            font-size: 2rem;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .video-preview-container {
+            margin: 20px auto;
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+        }
+        .video-preview, .video-stream {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            background-color: #000;
+            display: none;
+        }
+        .confidence-container {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .slider-container {
+            position: relative;
+            padding: 20px 10px;
+        }
+        .slider-value {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        .file-info {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .file-info .file-icon {
+            margin-right: 10px;
+            color: #6c757d;
+        }
+        .file-info .file-size {
+            color: #6c757d;
+            margin-left: auto;
+        }
+        .remove-file {
+            margin-left: 10px;
+            cursor: pointer;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h5 class="mb-4">Navigation</h5>
+        <a href="/" class="sidebar-link">Ana Sayfa</a>
+        <a href="/realtime" class="sidebar-link">Gerçek Zamanlı Tespit</a>
+        <a href="/image" class="sidebar-link">Resim Tespiti</a>
+        <a href="/video" class="sidebar-link active">Video Tespiti</a>
+    </div>
+
+    <div class="main-content">
+        <div class="main-container">
+            <h2 class="text-center mb-4">Video Tespiti</h2>
+            
+            <div class="upload-area" id="upload-container">
+                <div class="upload-icon">⬆️</div>
+                <p class="mb-2">Video Yükle</p>
+                <p class="text-muted mb-2">Dosyayı sürükleyip bırakın veya</p>
+                <input type="file" id="video-input" accept="video/mp4,video/mpeg4" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('video-input').click()">
+                    Dosya Seç
+                </button>
+                <p class="text-muted mt-2">Limit 1GB • MP4, MPEG4</p>
+            </div>
+
+            <div id="file-info-container" style="display: none;">
+                <div class="file-info">
+                    <span class="file-icon">📹</span>
+                    <span class="file-name"></span>
+                    <span class="file-size"></span>
+                    <span class="remove-file" onclick="removeFile()">❌</span>
+                </div>
+            </div>
+
+            <div class="confidence-container">
+                <label class="form-label">Güven Eşiği</label>
+                <div class="slider-container">
+                    <span class="slider-value" id="confidence-value">0.50</span>
+                    <input type="range" class="form-range" id="confidence-slider" 
+                           min="0.1" max="1.0" step="0.05" value="0.50">
+                </div>
+                <small class="text-muted">Tespit hassasiyetini ayarlamak için eşik değerini değiştirin.</small>
+            </div>
+
+            <div class="video-preview-container">
+                <video id="video-preview" class="video-preview" controls></video>
+                <img id="video-stream" class="video-stream">
+            </div>
+
+            <div class="progress-container">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>İşleme durumu</span>
+                    <span id="progress-percentage">0%</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary w-100" id="process-btn" disabled>
+                Video İşle
+            </button>
+
+            <div class="mt-4">
+                <h5>Video Bilgileri</h5>
+                <div id="video-info" class="text-muted">
+                    Video yüklendiğinde bilgiler burada görüntülenecek.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoInput = document.getElementById('video-input');
+        const videoPreview = document.getElementById('video-preview');
+        const videoStream = document.getElementById('video-stream');
+        const uploadContainer = document.getElementById('upload-container');
+        const fileInfoContainer = document.getElementById('file-info-container');
+        const processBtn = document.getElementById('process-btn');
+        const confidenceSlider = document.getElementById('confidence-slider');
+        const confidenceValue = document.getElementById('confidence-value');
+        const progressContainer = document.querySelector('.progress-container');
+        const progressBar = document.querySelector('.progress-bar');
+        const progressPercentage = document.getElementById('progress-percentage');
+        const videoInfo = document.getElementById('video-info');
+
+        let videoStreamObj = null;
+
+        // Confidence slider
+        confidenceSlider.addEventListener('input', (e) => {
+            confidenceValue.textContent = e.target.value;
+        });
+
+        // File handling
+        function handleFile(file) {
+            if (file && file.type.startsWith('video/')) {
+                const url = URL.createObjectURL(file);
+                videoPreview.src = url;
+                videoPreview.style.display = 'block';
+                videoStream.style.display = 'none';
+                processBtn.disabled = false;
+
+                // Show file info
+                fileInfoContainer.style.display = 'block';
+                fileInfoContainer.querySelector('.file-name').textContent = file.name;
+                fileInfoContainer.querySelector('.file-size').textContent = formatFileSize(file.size);
+
+                // Update video info when metadata is loaded
+                videoPreview.onloadedmetadata = function() {
+                    const duration = Math.round(videoPreview.duration);
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = duration % 60;
+                    
+                    videoInfo.innerHTML = `
+                        <p>Süre: ${minutes}:${seconds.toString().padStart(2, '0')}</p>
+                        <p>Orijinal Boyut: ${videoPreview.videoWidth} x ${videoPreview.videoHeight}</p>
+                    `;
+                };
+            }
+        }
+
+        function removeFile() {
+            videoInput.value = '';
+            videoPreview.src = '';
+            videoPreview.style.display = 'none';
+            fileInfoContainer.style.display = 'none';
+            processBtn.disabled = true;
+            videoInfo.innerHTML = 'Video yüklendiğinde bilgiler burada görüntülenecek.';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // File input change
+        videoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+
+        // Drag and drop
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.style.backgroundColor = '#e9ecef';
+        });
+
+        uploadContainer.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadContainer.style.backgroundColor = '#f8f9fa';
+        });
+
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.style.backgroundColor = '#f8f9fa';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('video/')) {
+                videoInput.files = e.dataTransfer.files;
+                handleFile(file);
+            }
+        });
+
+        // Process video
+        processBtn.addEventListener('click', async () => {
+            const file = videoInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('video', file);
+            formData.append('confidence', confidenceSlider.value);
+
+            // Progress bar'ı sıfırla ve göster
+            progressBar.style.width = '0%';
+            progressPercentage.textContent = '0%';
+            progressContainer.style.display = 'block';
+            processBtn.disabled = true;
+
+            try {
+                // Simüle edilmiş ilerleme
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += Math.random() * 10;
+                        if (progress > 90) progress = 90;
+                        progressBar.style.width = `${progress}%`;
+                        progressPercentage.textContent = `${Math.round(progress)}%`;
+                    }
+                }, 500);
+
+                const response = await fetch('/detect_video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Video işlenirken bir hata oluştu');
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // İşlem tamamlandı, progress bar'ı 100% yap
+                    progressBar.style.width = '100%';
+                    progressPercentage.textContent = '100%';
+
+                    // İşlenmiş videoyu görüntüle
+                    const videoUrl = `/video_result/${data.video_path}`;
+                    
+                    // Video elementini güncelle
+                    videoPreview.src = videoUrl;
+                    videoPreview.type = 'video/webm';  // WebM formatı için type ayarla
+                    videoPreview.load(); // Video'yu yeniden yükle
+                    videoPreview.style.display = 'block';
+                    videoStream.style.display = 'none';
+
+                    // Video yükleme hatası durumunda
+                    videoPreview.onerror = function(e) {
+                        console.error('Video yükleme hatası:', e);
+                        console.error('Video error:', videoPreview.error);
+                        console.error('Video yolu:', videoUrl);
+                        alert('Video yüklenirken bir hata oluştu. Lütfen videoyu indirip bilgisayarınızda açın.');
+                    };
+
+                    // Video yüklendiğinde
+                    videoPreview.onloadeddata = function() {
+                        console.log('Video yüklendi');
+                        console.log('Video boyutu:', videoPreview.videoWidth, 'x', videoPreview.videoHeight);
+                        console.log('Video süresi:', videoPreview.duration);
+                        
+                        // Video bilgilerini güncelle
+                        const duration = Math.round(videoPreview.duration);
+                        const minutes = Math.floor(duration / 60);
+                        const seconds = duration % 60;
+                        
+                        videoInfo.innerHTML = `
+                            <p>Süre: ${minutes}:${seconds.toString().padStart(2, '0')}</p>
+                            <p>Boyut: ${videoPreview.videoWidth} x ${videoPreview.videoHeight}</p>
+                        `;
+                    };
+                    
+                    // İndirme butonu container'ını kontrol et ve oluştur
+                    let downloadContainer = document.getElementById('download-btn-container');
+                    if (!downloadContainer) {
+                        downloadContainer = document.createElement('div');
+                        downloadContainer.id = 'download-btn-container';
+                        downloadContainer.className = 'mt-3 text-center';
+                        videoPreview.parentElement.appendChild(downloadContainer);
+                    }
+                    
+                    // İndirme butonu içeriğini güncelle
+                    downloadContainer.innerHTML = `
+                        <a href="/download_video/${data.video_path}" class="btn btn-success">
+                            İşlenmiş Videoyu İndir
+                        </a>
+                    `;
+                    
+                    // Video hata durumunu yakala
+                    videoPreview.onerror = function() {
+                        console.error('Video yükleme hatası:', videoPreview.error);
+                        alert('Video yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin ve tekrar deneyin.');
+                    };
+
+                    // Başarı mesajı göster
+                    alert('Video başarıyla işlendi!');
+                } else {
+                    throw new Error('Video işlenemedi');
+                }
+
+            } catch (error) {
+                console.error('İşleme hatası:', error);
+                alert('Bir hata oluştu: ' + error.message);
+                // Hata durumunda progress bar'ı gizle
+                progressContainer.style.display = 'none';
+            } finally {
+                processBtn.disabled = false;
+                // Progress container'ı 2 saniye sonra gizle
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html> 

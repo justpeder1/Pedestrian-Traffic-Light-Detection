@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yaya ve Trafik Işığı Algılama - Resim</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+        }
+        .sidebar-link {
+            display: block;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        .sidebar-link:hover {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .sidebar-link.active {
+            background-color: #e9ecef;
+            color: #333;
+            font-weight: 500;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #f8f9fa;
+        }
+        .upload-area.dragover {
+            background-color: #e9ecef;
+            border-color: #6c757d;
+        }
+        .preview-image {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: none;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .result-image {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: none;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .confidence-container {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .confidence-value {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            color: #666;
+        }
+        .slider-container {
+            position: relative;
+            padding: 0 10px;
+            margin-top: 20px;
+        }
+        .slider-value {
+            position: absolute;
+            width: 40px;
+            text-align: center;
+            top: -25px;
+            margin-left: -20px;
+            color: #666;
+            background-color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h5 class="mb-4">Navigation</h5>
+        <a href="/" class="sidebar-link">Ana Sayfa</a>
+        <a href="/realtime" class="sidebar-link">Gerçek Zamanlı Tespit</a>
+        <a href="/image" class="sidebar-link active">Resim Tespiti</a>
+        <a href="/video" class="sidebar-link">Video Tespiti</a>
+    </div>
+
+    <div class="main-content">
+        <div class="main-container">
+            <h1 class="text-center mb-4">Yaya ve Trafik Işığı Algılama - Resim</h1>
+            <p class="text-muted text-center mb-4">
+                Resim yükleyerek yaya ve trafik ışığı tespiti yapın. Bu bölüm tek bir resim üzerinde analiz yapmak için kullanılabilir.
+            </p>
+
+            <div class="upload-area" id="upload-container">
+                <p class="mb-2">Resim Yükle</p>
+                <p>Dosyayı sürükleyip bırakın veya</p>
+                <input type="file" id="image-input" accept="image/*" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('image-input').click()">
+                    Dosya Seç
+                </button>
+                <small class="text-muted d-block mt-2">Limit 10MB • PNG, JPG, JPEG</small>
+            </div>
+
+            <div class="confidence-container">
+                <label class="form-label">Güven Eşiği</label>
+                <div class="slider-container">
+                    <div class="slider-value" id="slider-value" style="left: 30%;">0.30</div>
+                    <input type="range" class="form-range" id="confidence-slider" 
+                           min="0.1" max="1.0" step="0.05" value="0.30">
+                </div>
+                <div class="confidence-value">
+                    <span>0.10</span>
+                    <span>1.00</span>
+                </div>
+                <small class="text-muted">Tespit hassasiyetini ayarlamak için eşik değerini değiştirin.</small>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="image-section">
+                        <h4>Orijinal Resim</h4>
+                        <img id="preview-image" class="preview-image">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="image-section">
+                        <h4>Tespit Sonucu</h4>
+                        <img id="result-image" class="result-image">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary w-100 mt-4" id="detect-btn" disabled>
+                Tespit Et
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const previewImage = document.getElementById('preview-image');
+        const resultImage = document.getElementById('result-image');
+        const uploadContainer = document.getElementById('upload-container');
+        const detectBtn = document.getElementById('detect-btn');
+        const confidenceSlider = document.getElementById('confidence-slider');
+        const sliderValue = document.getElementById('slider-value');
+
+        // Update confidence value display
+        confidenceSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            sliderValue.textContent = value.toFixed(2);
+            const percent = ((value - 0.1) / 0.9) * 100;
+            sliderValue.style.left = `${percent}%`;
+        });
+
+        // Handle file selection
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                    detectBtn.disabled = false;
+                    resultImage.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle drag and drop
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.add('dragover');
+        });
+
+        uploadContainer.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.remove('dragover');
+        });
+
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                imageInput.files = e.dataTransfer.files;
+                const event = new Event('change');
+                imageInput.dispatchEvent(event);
+            }
+        });
+
+        // Handle detection
+        detectBtn.addEventListener('click', async () => {
+            const file = imageInput.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('confidence', confidenceSlider.value);
+            
+            detectBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/detect', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    resultImage.src = url;
+                    resultImage.style.display = 'block';
+                } else {
+                    const error = await response.json();
+                    alert('Hata: ' + error.error);
+                }
+            } catch (error) {
+                alert('Bir hata oluştu: ' + error.message);
+            } finally {
+                detectBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html> 
