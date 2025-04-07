@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file, Response
 import os
 import glob
 import cv2
-import torchapp
+import torch
 from ultralytics import YOLO
 import numpy as np
 import io
