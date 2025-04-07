@@ -1,5 +1,13 @@
 # Pedestrian Traffic Light Detection
 
+## Introduction
+
+In today's urban environments, pedestrian safety and traffic management are critical aspects of modern cities. With the increasing complexity of traffic systems and pedestrian movement, there is a growing need for intelligent solutions to analyze and optimize traffic flow. 
+
+This project aims to address these challenges by leveraging AI to detect and analyze pedestrian and traffic light interactions in real-time. Powered by deep learning, this system enables accurate identification of traffic light states and pedestrian presence, offering an advanced tool for traffic monitoring and smart city initiatives.
+
+To dive deeper into how this system works and the technical details behind its implementation, you can check out the original article on [Medium](https://medium.com/@gokhakan/pedestrian-traffic-light-detection-building-an-ai-powered-system-for-intelligent-traffic-analysis-8dd07b4ab7ea).
+
 ## Project Overview
 This project provides an advanced AI-powered system for detecting and analyzing pedestrians and traffic lights in images and videos. The system uses deep learning techniques to identify various traffic elements in real-time.
 
